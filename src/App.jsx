@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import Chessboard from 'chessboardjsx';
 import { io } from 'socket.io-client';
 
-//const socket = io('https://chess-backend-yot6.onrender.com'); 
+//const socket = io('https://chess-backend-q9sp.onrender.com/'); 
 //const socket = io("https://chess-backend-yot6.onrender.com", {transports: ["websocket"],});
 const socket = io('http://127.0.0.1:5000/'); 
+//const socket = io('https://vtqn-chess-backend.fayedark.com')
 
 const App = () => {
   const [position, setPosition] = useState('start');
@@ -13,12 +14,18 @@ const App = () => {
   const [currentTurn, setCurrentTurn] = useState('white');
   const [gameStarted, setGameStarted] = useState(false);
   const [aiDelay, setAiDelay] = useState(0);
+  const [announcement, setAnnouncement] = useState(null);
 
   useEffect(() => {
     socket.on('update', (data) => {
       setPosition(data.fen);
       setCurrentTurn(data.turn);
       console.log(data.message)
+    });
+
+    socket.on('announcement', (data) => {
+      setAnnouncement(data.result);
+      setGameStarted(false); // Stop the game when there's an announcement
     });
 
     socket.on('error', (data) => {
@@ -29,6 +36,7 @@ const App = () => {
 
     return () => {
       socket.off('update');
+      socket.off('announcement');
       socket.off('error');
     };
   }, []);
@@ -41,6 +49,7 @@ const App = () => {
 
   const handleReset = () => {
     setGameStarted(false);
+    setAnnouncement(null);
     socket.emit('reset');
   };
 
@@ -66,6 +75,7 @@ const App = () => {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '50px' }}>
       <h1>Chess Game</h1>
       <p>Press Start to be able to play</p>
+      {announcement && <h2 style={{ color: 'red' }}>{announcement}</h2>}
       <div style={{ marginBottom: '20px' }}>
         <label>
           White Mode:
@@ -92,7 +102,7 @@ const App = () => {
         <button
           onClick={() => setGameStarted(true)}
           style={{ padding: '10px 20px', fontSize: '16px' }}
-          disabled={gameStarted}
+          disabled={gameStarted || announcement}
         >
           Start
         </button>
