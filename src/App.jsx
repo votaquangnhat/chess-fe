@@ -3,8 +3,8 @@ import Chessboard from 'chessboardjsx';
 import { io } from 'socket.io-client';
 
 //const socket = io('https://chess-backend-yot6.onrender.com'); 
-const socket = io("https://chess-backend-yot6.onrender.com", {transports: ["websocket"],});
-//const socket = io('http://127.0.0.1:5000/'); 
+//const socket = io("https://chess-backend-yot6.onrender.com", {transports: ["websocket"],});
+const socket = io('http://127.0.0.1:5000/'); 
 
 const App = () => {
   const [position, setPosition] = useState('start');
