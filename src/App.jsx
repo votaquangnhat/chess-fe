@@ -4,17 +4,21 @@ import { io } from 'socket.io-client';
 
 //const socket = io('https://chess-backend-q9sp.onrender.com/'); 
 //const socket = io("https://chess-backend-yot6.onrender.com", {transports: ["websocket"],});
-//const socket = io('http://127.0.0.1:5000/'); 
-const socket = io('https://vtqn-chess-backend.fayedark.com')
+const socket = io('http://127.0.0.1:5000/'); 
+//const socket = io('https://vtqn-chess-backend.fayedark.com')
 
 const App = () => {
   const [position, setPosition] = useState('start');
   const [whiteMode, setWhiteMode] = useState('Human');
   const [blackMode, setBlackMode] = useState('Human');
+  const [whiteDepth, setWhiteDepth] = useState(3);
+  const [blackDepth, setBlackDepth] = useState(3);
   const [currentTurn, setCurrentTurn] = useState('white');
   const [gameStarted, setGameStarted] = useState(false);
   const [aiDelay, setAiDelay] = useState(0);
   const [announcement, setAnnouncement] = useState(null);
+  const [PromotionMove, setPromotionMove] = useState(null);
+  const [promotionModalVisible, setPromotionModalVisible] = useState(false)
 
   useEffect(() => {
     socket.on('update', (data) => {
@@ -43,8 +47,21 @@ const App = () => {
 
   const handleMove = ({ sourceSquare, targetSquare }) => {
     if (gameStarted && ((currentTurn === 'white' && whiteMode === 'Human') || (currentTurn === 'black' && blackMode === 'Human'))) {
-      socket.emit('move', { from: sourceSquare, to: targetSquare });
+      if (
+        (currentTurn === 'white' && targetSquare[1] === '8') ||
+        (currentTurn === 'black' && targetSquare[1] === '1')) {
+        // Show promotion modal if the move reaches the promotion rank
+        setPromotionMove(sourceSquare + targetSquare); // Set the move
+        setPromotionModalVisible(true);
+      } else {
+        socket.emit('move', { from: sourceSquare, to: targetSquare, promotion: '' });
+      }
     }
+  };
+
+  const handlePromotion = (piece) => {
+    socket.emit('move', { from: PromotionMove, to: '', promotion: piece }); // from and to are merged into PromotionMove
+    setPromotionModalVisible(false); // Hide the promotion modal
   };
 
   const handleReset = () => {
@@ -53,10 +70,10 @@ const App = () => {
     socket.emit('reset');
   };
 
-  const requestAIMove = (turn, mode) => {
+  const requestAIMove = (turn, mode, depth) => {
     setTimeout(() => {
       if (gameStarted) {
-        socket.emit('ai_move', { turn, mode });
+        socket.emit('ai_move', { turn, mode, depth });
       }
     }, aiDelay);
   };
@@ -64,12 +81,13 @@ const App = () => {
   useEffect(() => {
     if (gameStarted) {
       if (currentTurn === 'white' && whiteMode !== 'Human') {
-        requestAIMove('white', whiteMode);
+        requestAIMove('white', whiteMode, whiteDepth);
       } else if (currentTurn === 'black' && blackMode !== 'Human') {
-        requestAIMove('black', blackMode);
+        requestAIMove('black', blackMode, blackDepth);
       }
     }
-  }, [currentTurn, whiteMode, blackMode, gameStarted]);
+  }, [currentTurn, whiteMode, blackMode, whiteDepth, blackDepth, gameStarted]);
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '50px' }}>
@@ -87,6 +105,13 @@ const App = () => {
             <option value="MCTS_NN">MCTS + NN</option>
           </select>
         </label>
+        <input
+          type="number"
+          value={whiteDepth}
+          onChange={(e) => setWhiteDepth(Number(e.target.value))}
+          style={{ marginLeft: '10px', width: '60px' }}
+          min="1"
+        />
         <label style={{ marginLeft: '20px' }}>
           Black Mode:
           <select value={blackMode} onChange={(e) => setBlackMode(e.target.value)} style={{ marginLeft: '10px' }}>
@@ -97,6 +122,13 @@ const App = () => {
             <option value="MCTS_NN">MCTS + NN</option>
           </select>
         </label>
+        <input
+          type="number"
+          value={blackDepth}
+          onChange={(e) => setBlackDepth(Number(e.target.value))}
+          style={{ marginLeft: '10px', width: '60px' }}
+          min="1"
+        />
       </div>
       <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
         <button
@@ -120,6 +152,16 @@ const App = () => {
           />
         </label>
       </div>
+       {/* Promotion Modal */}
+       {promotionModalVisible && (
+        <div >
+          <h3>Promote Pawn</h3>
+          <button onClick={() => handlePromotion('q')}>Queen</button>
+          <button onClick={() => handlePromotion('r')}>Rook</button>
+          <button onClick={() => handlePromotion('b')}>Bishop</button>
+          <button onClick={() => handlePromotion('k')}>Knight</button>
+        </div>
+      )}
       <Chessboard position={position} onDrop={handleMove} draggablePieces={gameStarted} />
     </div>
   );
