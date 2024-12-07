@@ -4,8 +4,8 @@ import { io } from 'socket.io-client';
 
 //const socket = io('https://chess-backend-q9sp.onrender.com/'); 
 //const socket = io("https://chess-backend-yot6.onrender.com", {transports: ["websocket"],});
-const socket = io('http://127.0.0.1:5000/'); 
-//const socket = io('https://vtqn-chess-backend.fayedark.com')
+//const socket = io('http://127.0.0.1:5000/'); 
+const socket = io('https://vtqn-chess-backend.fayedark.com')
 
 const App = () => {
   const [position, setPosition] = useState('start');
